@@ -132,13 +132,7 @@ McCustomEvent::~McCustomEvent() noexcept
 {
 }
 
-MC_GLOBAL_STATIC_BEGIN(iocGlobalStaticData)
-QString applicationDirPath;
-QString applicationName;
-MC_GLOBAL_STATIC_END(iocGlobalStaticData)
-
 namespace {
-
 QString getStandardPath(QStandardPaths::StandardLocation type)
 {
     auto paths = QStandardPaths::standardLocations(type);
@@ -147,8 +141,23 @@ QString getStandardPath(QStandardPaths::StandardLocation type)
     }
     return paths.first();
 }
-
 } // namespace
+
+MC_GLOBAL_STATIC_BEGIN(iocGlobalStaticData)
+QString applicationDirPath;
+QString applicationName;
+QHash<QString, std::function<QString()>> pathPlaceholders{
+    {QLatin1String("{desktop}"), std::bind(getStandardPath, QStandardPaths::DesktopLocation)},
+    {QLatin1String("{documents}"), std::bind(getStandardPath, QStandardPaths::DocumentsLocation)},
+    {QLatin1String("{temp}"), std::bind(getStandardPath, QStandardPaths::TempLocation)},
+    {QLatin1String("{home}"), std::bind(getStandardPath, QStandardPaths::HomeLocation)},
+    {QLatin1String("{appLocalData}"), std::bind(getStandardPath, QStandardPaths::AppLocalDataLocation)},
+    {QLatin1String("{data}"), std::bind(getStandardPath, QStandardPaths::AppLocalDataLocation)},
+    {QLatin1String("{cache}"), std::bind(getStandardPath, QStandardPaths::CacheLocation)},
+    {QLatin1String("{config}"), std::bind(getStandardPath, QStandardPaths::GenericConfigLocation)},
+    {QLatin1String("{appData}"), std::bind(getStandardPath, QStandardPaths::AppDataLocation)},
+};
+MC_GLOBAL_STATIC_END(iocGlobalStaticData)
 
 namespace Mc {
 
@@ -188,23 +197,19 @@ bool waitForExecFunc(const std::function<bool()> &func, qint64 timeout) noexcept
     return ret;
 }
 
+void registerPathPlaceholder(const QString &placeholder, const std::function<QString()> &func) noexcept
+{
+    iocGlobalStaticData->pathPlaceholders.insert(placeholder, func);
+}
+
 QString toAbsolutePath(const QString &inPath) noexcept
 {
-    static QHash<QString, QStandardPaths::StandardLocation> pathPlhs{{"{desktop}", QStandardPaths::DesktopLocation},
-                                                                     {"{documents}", QStandardPaths::DocumentsLocation},
-                                                                     {"{temp}", QStandardPaths::TempLocation},
-                                                                     {"{home}", QStandardPaths::HomeLocation},
-                                                                     {"{appLocalData}",
-                                                                      QStandardPaths::AppLocalDataLocation},
-                                                                     {"{cache}", QStandardPaths::CacheLocation},
-                                                                     {"{config}", QStandardPaths::GenericConfigLocation},
-                                                                     {"{appData}", QStandardPaths::AppDataLocation}};
-    static QStringList pathPlhKeys = pathPlhs.keys();
+    QStringList pathPlhKeys = iocGlobalStaticData->pathPlaceholders.keys();
     auto path = inPath;
     for (const auto &key : pathPlhKeys) {
-        const auto &value = pathPlhs.value(key);
+        const auto &value = iocGlobalStaticData->pathPlaceholders.value(key);
         QString plhPath;
-        if (path.contains(key) && !(plhPath = getStandardPath(value)).isEmpty()) {
+        if (path.contains(key) && !(plhPath = value()).isEmpty()) {
             path.replace(key, plhPath);
         }
     }

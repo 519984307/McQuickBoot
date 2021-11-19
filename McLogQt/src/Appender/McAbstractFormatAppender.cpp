@@ -171,11 +171,16 @@ void McAbstractFormatAppender::customEvent(QEvent *event)
 
 void McAbstractFormatAppender::append_helper(const QString &msg) noexcept
 {
+    auto cleanup = qScopeGuard([this]() {
+        if (!d->useLockFile) {
+            return;
+        }
+        d->lockFile->unlock();
+    });
     if (d->useLockFile) {
         if (!d->lockFile->lock()) {
             qCritical() << "cannot use lock file for path:" << d->lockFilePath;
         }
-        auto cleanup = qScopeGuard([this]() { d->lockFile->unlock(); });
     }
     writeBefore();
     auto out = device();

@@ -202,15 +202,15 @@ void McAbstractRequestor::customEvent(QEvent *event)
 {
     if (event->type() == QEvent::Type::User + 1) {
         McRunnerEvent *e = static_cast<McRunnerEvent *>(event);
-        if (d->requestorConfig.isNull() || d->requestorConfig->autoIncrease()) {
-            if (staticData->requestorThreadPool.tryStart(e->runner())) {
-                return;
-            }
-            staticData->requestorThreadPool.reserveThread();
-            connect(e->runner(), &McRequestRunner::signal_finished, this, []() {
-                staticData->requestorThreadPool.releaseThread();
-            });
-        }
+        //        if (d->requestorConfig.isNull() || d->requestorConfig->autoIncrease()) {
+        //            if (staticData->requestorThreadPool.tryStart(e->runner())) {
+        //                return;
+        //            }
+        //            staticData->requestorThreadPool.reserveThread();
+        //            connect(e->runner(), &McRequestRunner::signal_finished, this, []() {
+        //                staticData->requestorThreadPool.releaseThread();
+        //            });
+        //        }
         staticData->requestorThreadPool.start(e->runner());
     }
 }
