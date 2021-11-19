@@ -202,15 +202,17 @@ void McAbstractRequestor::customEvent(QEvent *event)
 {
     if (event->type() == QEvent::Type::User + 1) {
         McRunnerEvent *e = static_cast<McRunnerEvent *>(event);
-        if (d->requestorConfig.isNull() || d->requestorConfig->autoIncrease()) {
-            if (staticData->requestorThreadPool.tryStart(e->runner())) {
-                return;
-            }
-            staticData->requestorThreadPool.reserveThread();
-            connect(e->runner(), &McRequestRunner::signal_finished, this, []() {
-                staticData->requestorThreadPool.releaseThread();
-            });
-        }
+        //! reserve方法不是临时增加一个线程，而是强制占用一个线程，如果不release，则永远不会被调用到了。
+        //! 该方法后续用来实现其他功能，比如指定优先级调用
+        //        if (d->requestorConfig.isNull() || d->requestorConfig->autoIncrease()) {
+        //            if (staticData->requestorThreadPool.tryStart(e->runner())) {
+        //                return;
+        //            }
+        //            staticData->requestorThreadPool.reserveThread();
+        //            connect(e->runner(), &McRequestRunner::signal_finished, this, []() {
+        //                staticData->requestorThreadPool.releaseThread();
+        //            });
+        //        }
         staticData->requestorThreadPool.start(e->runner());
     }
 }

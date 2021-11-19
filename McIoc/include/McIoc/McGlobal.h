@@ -227,6 +227,7 @@ MCIOC_EXPORT bool waitForExecFunc(
         const std::function<bool()> &func
         , qint64 timeout = -1) noexcept;
 
+MCIOC_EXPORT void registerPathPlaceholder(const QString &placeholder, const std::function<QString()> &func) noexcept;
 /*!
  * \brief mcToAbsolutePath
  * 
