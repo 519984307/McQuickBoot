@@ -23,27 +23,25 @@
  */
 #include "McIoc/ApplicationContext/impl/McAnnotationApplicationContext.h"
 
-#include <QMetaClassInfo>
-#include <QGlobalStatic>
 #include <QDebug>
+#include <QGlobalStatic>
+#include <QMetaClassInfo>
 
-#include "McIoc/BeanDefinitionReader/impl/McAnnotationBeanDefinitionReader.h"
 #include "McIoc/BeanDefinition/impl/McRootBeanDefinition.h"
+#include "McIoc/BeanDefinitionReader/impl/McAnnotationBeanDefinitionReader.h"
 #include "McIoc/BeanFactory/impl/McBeanConnector.h"
 #include "McIoc/BeanFactory/impl/McMetaTypeId.h"
 #include "McIoc/McMacroGlobal.h"
 
 //! 用来保存需要自动注入的bean的beanName和BeanDefinition
-typedef QHash<QString, IMcBeanDefinitionPtr> McBeanDefinitionContainter; 
+typedef QHash<QString, IMcBeanDefinitionPtr> McBeanDefinitionContainter;
 MC_GLOBAL_STATIC(McBeanDefinitionContainter, mcAutowiredRegistry)
 
 namespace {
 
 void initBeanDefinition(int type, int sharedType) noexcept
 {
-    Q_ASSERT_X(QMetaType::isRegistered(type),
-               "McAnnotationApplicationContext",
-               "type not registered");
+    Q_ASSERT_X(QMetaType::isRegistered(type), "McAnnotationApplicationContext", "type not registered");
     auto metaObj = QMetaType::metaObjectForType(type);
     Q_ASSERT_X(metaObj != nullptr, "McAnnotationApplicationContext", "cannot get meta object");
     //! 由于MC_INIT和MC_STATIC的优化，此功能可以放在MC_REGISTER_BEAN_FACTORY中调用。
@@ -99,14 +97,14 @@ void init() noexcept
     {
         auto qobjectMetaTypeIds = McMetaTypeId::qobjectPointerIds();
         auto keys = qobjectMetaTypeIds.keys();
-        for (auto type : keys) {
+        for (auto type: keys) {
             initBeanDefinition(type, qobjectMetaTypeIds.value(type)->sharedPointerId);
         }
     }
     {
         auto gadgetIds = McMetaTypeId::gadgetIds();
         auto keys = gadgetIds.keys();
-        for (auto type : keys) {
+        for (auto type: keys) {
             initBeanDefinition(type, gadgetIds.value(type)->sharedId);
         }
     }
@@ -114,7 +112,7 @@ void init() noexcept
 
 } // namespace
 
-MC_INIT(McAnnotationApplicationContext)
+MC_INIT(McAnnotationApplicationContext, Mc::RoutinePriority::Min - 10)
 init();
 MC_DESTROY()
 mcAutowiredRegistry->clear();
@@ -124,9 +122,7 @@ MC_DECL_PRIVATE_DATA(McAnnotationApplicationContext)
 MC_DECL_PRIVATE_DATA_END
 
 McAnnotationApplicationContext::McAnnotationApplicationContext(
-    IMcConfigurableBeanFactoryConstPtrRef factory,
-    IMcBeanDefinitionReaderConstPtrRef reader,
-    QObject *parent)
+    IMcConfigurableBeanFactoryConstPtrRef factory, IMcBeanDefinitionReaderConstPtrRef reader, QObject *parent)
     : McReadableApplicationContext(factory, reader, parent)
 {
     MC_NEW_PRIVATE_DATA(McAnnotationApplicationContext);
@@ -147,9 +143,7 @@ McAnnotationApplicationContext::McAnnotationApplicationContext(QObject *parent)
     generateReader();
 }
 
-McAnnotationApplicationContext::~McAnnotationApplicationContext() 
-{
-}
+McAnnotationApplicationContext::~McAnnotationApplicationContext() {}
 
 void McAnnotationApplicationContext::generateReader() noexcept
 {
@@ -157,16 +151,12 @@ void McAnnotationApplicationContext::generateReader() noexcept
     setReader(reader);
 }
 
-void McAnnotationApplicationContext::addConnect(const QString &beanName,
-                                                const QString &sender,
-                                                const QString &signal,
-                                                const QString &receiver,
-                                                const QString &slot,
-                                                Qt::ConnectionType type) noexcept
+void McAnnotationApplicationContext::addConnect(const QString &beanName, const QString &sender, const QString &signal,
+    const QString &receiver, const QString &slot, Qt::ConnectionType type) noexcept
 {
     McBeanDefinitionContainter *ar = mcAutowiredRegistry;
     auto beanDefinition = (*ar)[beanName];
-    if(!beanDefinition) {
+    if (!beanDefinition) {
         beanDefinition = McRootBeanDefinitionPtr::create();
         (*ar)[beanName] = beanDefinition;
     }
